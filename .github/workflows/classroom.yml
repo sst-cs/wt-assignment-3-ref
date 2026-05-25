@@ -1,0 +1,57 @@
+name: Autograde React Hooks
+
+on: [push, workflow_dispatch]
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      statuses: write
+      checks: write
+
+    steps:
+      - name: Checkout student submission
+        uses: actions/checkout@v4
+
+      - name: Checkout hidden tests
+        uses: actions/checkout@v4
+        with:
+          repository: sst-cs/wt-assignment-3-tests
+          token: ${{ secrets.HIDDEN_TESTS_TOKEN }}
+          path: hidden-tests
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run static analysis grader
+        id: run_tests
+        run: |
+          node hidden-tests/test.js | tee /tmp/test_output.txt
+          SCORE=$(sed -n 's/.*Final Score: \([0-9]\{1,2\}\)\/.*/\1/p' /tmp/test_output.txt | head -1)
+          [ -z "$SCORE" ] && SCORE=0
+          echo "Extracted score: $SCORE"
+          echo "SCORE=$SCORE" >> $GITHUB_ENV
+
+      - name: Package Results
+        id: package
+        run: |
+          TOTAL=$SCORE
+          echo "Total Score: $TOTAL / 10"
+
+          for i in $(seq 1 10); do
+            STATUS="fail"; SCORE_VAL=0
+            if [ $i -le $TOTAL ]; then STATUS="pass"; SCORE_VAL=1; fi
+            JSON="{\"version\":1,\"status\":\"$STATUS\",\"max_score\":1,\"tests\":[{\"name\":\"Requirement $i\",\"status\":\"$STATUS\",\"score\":$SCORE_VAL,\"max_score\":1}]}"
+            B64=$(echo -n "$JSON" | base64 -w 0)
+            echo "R${i}_RESULTS=$B64" >> $GITHUB_ENV
+          done
+
+      - name: Autograding Reporter
+        uses: education/autograding-grading-reporter@v1
+        continue-on-error: true
+        with:
+          runners: r1,r2,r3,r4,r5,r6,r7,r8,r9,r10
