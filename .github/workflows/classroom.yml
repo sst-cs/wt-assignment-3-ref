@@ -23,6 +23,14 @@ jobs:
           token: ${{ secrets.HIDDEN_TESTS_TOKEN }}
           path: hidden-tests
 
+      - name: Verify hidden tests available
+        run: |
+          if [ ! -f hidden-tests/test.js ]; then
+            echo "::error title=Hidden tests missing::Could not fetch the hidden tests. The HIDDEN_TESTS_TOKEN org secret is missing or invalid (GitHub returns 'Bad credentials' when a token is expired/revoked). An org admin must update HIDDEN_TESTS_TOKEN and re-run. NOTE: template/-ref repos are expected to fail here."
+            exit 1
+          fi
+          echo "Hidden tests present — proceeding."
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -30,13 +38,7 @@ jobs:
 
       - name: Run static analysis grader
         id: run_tests
-        continue-on-error: true
         run: |
-          if [ ! -f hidden-tests/test.js ]; then
-            echo "Hidden tests not available — scoring 0"
-            echo "SCORE=0" >> $GITHUB_ENV
-            exit 0
-          fi
           node hidden-tests/test.js | tee /tmp/test_output.txt
           SCORE=$(sed -n 's/.*Final Score: \([0-9]\{1,2\}\)\/.*/\1/p' /tmp/test_output.txt | head -1)
           [ -z "$SCORE" ] && SCORE=0
