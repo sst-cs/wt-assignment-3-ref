@@ -30,6 +30,7 @@ jobs:
 
       - name: Run static analysis grader
         id: run_tests
+        continue-on-error: true
         run: |
           if [ ! -f hidden-tests/test.js ]; then
             echo "Hidden tests not available — scoring 0"
@@ -45,7 +46,7 @@ jobs:
       - name: Package Results
         id: package
         run: |
-          TOTAL=$SCORE
+          TOTAL=${SCORE:-0}
           echo "Total Score: $TOTAL / 10"
 
           for i in $(seq 1 10); do
