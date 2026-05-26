@@ -82,7 +82,7 @@ jobs:
           done
 
       - name: Autograding Reporter
-        uses: education/autograding-grading-reporter@v1
+        uses: classroom-resources/autograding-grading-reporter@v1
         continue-on-error: true
         with:
           runners: r1,r2,r3,r4,r5,r6,r7,r8,r9,r10
